@@ -173,8 +173,6 @@ const TextWindow = () => {
       alignItems={"center"}
     >
       <TextField
-        multiline
-        maxRows={3}
         fullWidth
         variant="standard"
         placeholder="type here"

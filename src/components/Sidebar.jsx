@@ -1,16 +1,26 @@
-import { Box, Button, Dialog, TextField, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  Dialog,
+  IconButton,
+  TextField,
+  Typography,
+} from "@mui/material";
 import { LoadingButton } from "@mui/lab";
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
 import useAuth from "../hooks/useAuth";
 import axios from "axios";
 import api from "../api";
 import { AppContext } from "../AppContext";
+import { socket } from "../socket";
 
 const Sidebar = () => {
   const { user } = useAuth();
   const { rooms, updateRooms, activeRoom, setActiveRoom } =
     useContext(AppContext);
+
+  const activeRoomRef = useRef(activeRoom);
 
   const [crErr, setcrErr] = useState("");
   const [croom, setCroom] = useState({
@@ -65,6 +75,30 @@ const Sidebar = () => {
   const [createRoomOpem, setCreateRoomOpen] = useState(false);
   const [joinRoomOpem, setJoinRoomOpen] = useState(false);
 
+  const [nots, setNots] = useState({});
+
+  const manageNotifications = (e) => {
+    if (e.room == activeRoomRef.current) return;
+    setNots((prev) => ({ ...prev, [e.room]: (prev[e.room] ?? 0) + 1 }));
+  };
+
+  useEffect(() => {
+    activeRoomRef.current = activeRoom;
+    setNots((prev) => ({ ...prev, [activeRoom]: 0 }));
+  }, [activeRoom]);
+
+  useEffect(() => {
+    console.log(nots);
+  }, [nots]);
+
+  useEffect(() => {
+    socket.on("notification", manageNotifications);
+
+    return () => {
+      socket.off("notification", manageNotifications);
+    };
+  }, []);
+
   return (
     <Box
       height={"100%"}
@@ -99,12 +133,16 @@ const Sidebar = () => {
         <Box display={"flex"} flexDirection={"column"} gap={1}>
           {rooms?.map((r, i) => (
             <Box
-              onClick={() => setActiveRoom(r)}
+              onClick={() => setActiveRoom(r.name)}
               key={i}
               p={2}
-              bgcolor={activeRoom == r ? "#121E2C" : "transparent"}
+              bgcolor={activeRoom == r.name ? "#121E2C" : "transparent"}
               borderRadius={2}
               sx={{
+                display: "flex",
+                gap: 1,
+                alignItems: "center",
+                justifyContent: "space-between",
                 cursor: "pointer",
                 ":hover": {
                   bgcolor: "#121E2C",
@@ -113,11 +151,34 @@ const Sidebar = () => {
             >
               <Typography
                 sx={{
-                  color: activeRoom == r ? "#E35B32" : "#fff",
+                  color: activeRoom == r.name ? "#E35B32" : "#fff",
+                  mr: 'auto'
                 }}
               >
-                {r}
+                {r?.name}
               </Typography>
+              {nots[r?.name] > 0 && (
+                <Box
+                  sx={{
+                    height: "1.5rem",
+                    aspectRatio: 1,
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    borderRadius: '50%',
+                    fontSize: '0.8rem',
+                    fontWeight: 600
+                  }}
+                  bgcolor={"success.main"}
+                >
+                  {nots[r?.name]}
+                </Box>
+              )}
+              {r?.creator == user?.username && (
+                <IconButton size="medium">
+                  <Icon icon="fa:trash" color="red" fontSize={"1rem"} />
+                </IconButton>
+              )}
             </Box>
           ))}
         </Box>

@@ -72,10 +72,8 @@ const ChatWindow = () => {
     scrollToBottom();
   }, [chats]);
 
-  useEffect(() => {
-    // Scroll to the bottom when the component mounts or whenever the content changes
-
-    socket.on(`chat-message-${activeRoom}`, handleChatMessage);
+  const updateChats = () => {
+    console.log("updating");
     setChats([]);
     api
       .post("/chats", {
@@ -83,16 +81,21 @@ const ChatWindow = () => {
       })
       .then((res) => {
         setChats(res.data.chats);
+        console.log(res.data.chats)
       })
       .catch((err) => console.log(err.response));
+  };
+
+  useEffect(() => {
+    // Scroll to the bottom when the component mounts or whenever the content changes
+
+    socket.on(`chat-message-${activeRoom}`, handleChatMessage);
+    socket.on("refresh", updateChats);
+    updateChats();
     return () => {
       socket.off(`chat-message-${activeRoom}`, handleChatMessage);
     };
   }, [activeRoom]);
-
-  useEffect(() => {
-    console.log(chats);
-  }, [chats]);
 
   return (
     <Box
@@ -109,40 +112,63 @@ const ChatWindow = () => {
           key={i}
           display={"flex"}
           gap={1}
-          justifyContent={c.name == user.username ? "flex-end" : "flex-start"}
+          justifyContent={
+            c.admin == true
+              ? "center"
+              : c.name == user.username
+              ? "flex-end"
+              : "flex-start"
+          }
         >
-          <Box
-            display={"flex"}
-            alignItems={"flex-end"}
-            gap={1}
-            flexDirection={c.name == user.username ? "row-reverse" : "row"}
-          >
-            <Avatar>{c?.name?.slice(0, 1).toUpperCase()}</Avatar>
+          {c.admin == true ? (
             <Box
-              p={2}
-              py={0.8}
-              bgcolor={"#1b2c41"}
+              p={1}
+              py={0.5}
+              px={2}
               borderRadius={1}
-              minWidth={"10rem"}
+              color={"#8ba1bc"}
+              fontSize={"0.8rem"}
+              bgcolor={"#304866"}
+              fontFamily={"consolus"}
             >
-              <Typography
-                fontSize={"0.8rem"}
-                color={"#919aa3"}
-                textTransform={"capitalize"}
-              >
-                {c?.name}
-              </Typography>
-              <Typography fontSize={"1rem"}>{c?.message}</Typography>
-              <Typography
-                mt={1}
-                textAlign={"right"}
-                fontSize={".6rem"}
-                color={"gray"}
-              >
-                {formatTimestamp(c?.timestamp)}
-              </Typography>
+              {c.message}
             </Box>
-          </Box>
+          ) : (
+            <Box
+              display={"flex"}
+              alignItems={"flex-end"}
+              gap={1}
+              flexDirection={c.name == user.username ? "row-reverse" : "row"}
+            >
+              <Avatar>{c?.name?.slice(0, 1).toUpperCase()}</Avatar>
+              <Box
+                p={2}
+                py={0.8}
+                bgcolor={"#1b2c41"}
+                borderRadius={1}
+                minWidth={"10rem"}
+              >
+                <Typography
+                  fontSize={"0.8rem"}
+                  color={"#919aa3"}
+                  textTransform={"capitalize"}
+                >
+                  {c?.name}
+                </Typography>
+                <Typography fontSize={"1rem"}>
+                  <pre>{c?.message}</pre>
+                </Typography>
+                <Typography
+                  mt={1}
+                  textAlign={"right"}
+                  fontSize={".6rem"}
+                  color={"gray"}
+                >
+                  {formatTimestamp(c?.timestamp)}
+                </Typography>
+              </Box>
+            </Box>
+          )}
         </Box>
       ))}
     </Box>
@@ -155,13 +181,22 @@ const TextWindow = () => {
   const [msg, setMsg] = useState("");
 
   const send = () => {
-    setMsg("")
     socket.emit(`chat-message`, {
       sender: user.username,
       room: activeRoom,
-      message: msg,
+      message: String(msg).trim(),
     });
+    setMsg("");
   };
+
+  const handleKeyPress = (event) => {
+    if (event.key === "Enter" && event.ctrlKey) {
+      console.log("enter");
+      send();
+    }
+  };
+
+  const chat = useRef();
 
   return (
     <Box
@@ -173,10 +208,14 @@ const TextWindow = () => {
       alignItems={"center"}
     >
       <TextField
+        ref={chat}
+        multiline
+        maxRows={2}
         fullWidth
         variant="standard"
         placeholder="type here"
         value={msg}
+        onKeyDown={handleKeyPress}
         onChange={(e) => setMsg(e.target.value)}
       />
       <Button variant="contained" onClick={send}>

@@ -23,9 +23,14 @@ const ContextProvider = ({ children }) => {
   }, [user]);
 
   useEffect(() => {
-    console.log("Currently active rooms is: " + activeRoom);
-    socket.emit("join-room", activeRoom);
+    console.log("active room: " + activeRoom);
   }, [activeRoom]);
+
+  useEffect(() => {
+    rooms.forEach((r) => {
+      socket.emit("join-room", r?.name);
+    });
+  }, [rooms]);
 
   const value = {
     user,

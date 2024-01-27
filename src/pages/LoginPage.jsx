@@ -2,6 +2,7 @@ import { Box, Button, FormControl, TextField, Typography } from "@mui/material";
 import React, { useState } from "react";
 import axios from "axios";
 import useAuth from "../hooks/useAuth";
+import api from "../api";
 
 const LoginPage = () => {
   const { setUser } = useAuth();
@@ -10,8 +11,8 @@ const LoginPage = () => {
 
   const login = () => {
     if (username.length > 0 && password.length > 0) {
-      axios
-        .post("http://localhost:3000/login", {
+      api
+        .post("/login", {
           username: username,
           password: password,
         })

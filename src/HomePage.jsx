@@ -116,6 +116,13 @@ const ChatWindow = () => {
   const [dcryptInp, setDcryptInp] = useState("");
   const [decrypted, setDecrypted] = useState(null);
 
+  useEffect(() => {
+    if (dcrypt == false) {
+      setDcryptMsg("");
+      setDcryptInp("");
+    }
+  }, [dcrypt]);
+
   return (
     <Box
       p={2}
@@ -153,9 +160,12 @@ const ChatWindow = () => {
             >
               Decrypt
             </Button>
-
           </Box>
-            {decrypted && <Typography mt={2} p={2} borderRadius={1} bgcolor={'#061018'}>{decrypted}</Typography>}
+          {decrypted && (
+            <Typography mt={2} p={2} borderRadius={1} bgcolor={"#061018"}>
+              {decrypted}
+            </Typography>
+          )}
         </Box>
       </Dialog>
       {chats?.map((c, i) => (
@@ -300,6 +310,7 @@ const TextWindow = () => {
       socket.emit(`chat-message`, newMsg);
       // console.log(newMsg);
       setMsg("");
+      setSecurityDrawerOpen(false);
     }
   };
 
@@ -338,7 +349,7 @@ const TextWindow = () => {
             {encOn && (
               <TextField
                 sx={{ mt: 1 }}
-                label="Encryption Text"
+                label="Encryption Key"
                 fullWidth
                 onChange={(e) => setEncTxt(e.target.value)}
               />

@@ -120,6 +120,7 @@ const ChatWindow = () => {
     if (dcrypt == false) {
       setDcryptMsg("");
       setDcryptInp("");
+      setDecrypted(null)
     }
   }, [dcrypt]);
 

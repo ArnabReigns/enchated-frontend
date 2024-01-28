@@ -6,3 +6,22 @@
   padding: 0;
   font-family:'Poppins', sans-serif;
 }
+
+/* Targeting WebKit browsers (Chrome, Safari) */
+*::-webkit-scrollbar {
+  width: 8px; /* Set the width of the scrollbar */
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: #1B2C41; /* Set the color of the thumb */
+  border-radius: 6px; /* Set the border radius of the thumb */
+}
+
+*::-webkit-scrollbar-track {
+  background-color: #3939394b; /* Set the color of the track */
+}
+
+/* Optional: Style the scrollbar on hover */
+::-webkit-scrollbar-thumb:hover {
+  background-color: #333;
+}

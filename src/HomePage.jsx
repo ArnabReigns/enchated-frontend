@@ -1,8 +1,20 @@
-import { Avatar, Box, Button, TextField, Typography } from "@mui/material";
+import {
+  Avatar,
+  Box,
+  Button,
+  Dialog,
+  Divider,
+  Drawer,
+  Switch,
+  TextField,
+  ToggleButton,
+  Typography,
+} from "@mui/material";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { AppContext } from "./AppContext";
 import { socket } from "./socket";
 import api from "./api";
+import CryptoJS from "crypto-js";
 
 const HomePage = () => {
   const { activeRoom } = useContext(AppContext);
@@ -81,7 +93,7 @@ const ChatWindow = () => {
       })
       .then((res) => {
         setChats(res.data.chats);
-        console.log(res.data.chats)
+        console.log(res.data.chats);
       })
       .catch((err) => console.log(err.response));
   };
@@ -97,6 +109,13 @@ const ChatWindow = () => {
     };
   }, [activeRoom]);
 
+  // decrypt
+
+  const [dcrypt, setDcrypt] = useState(false);
+  const [dcryptMsg, setDcryptMsg] = useState("");
+  const [dcryptInp, setDcryptInp] = useState("");
+  const [decrypted, setDecrypted] = useState(null);
+
   return (
     <Box
       p={2}
@@ -107,6 +126,38 @@ const ChatWindow = () => {
       flexDirection={"column"}
       gap={1}
     >
+      <Dialog
+        maxWidth="sm"
+        fullWidth
+        open={dcrypt}
+        onClose={() => setDcrypt(false)}
+      >
+        <Box p={4} bgcolor={"#121E2C"}>
+          <Box display={"flex"} gap={1}>
+            <TextField
+              fullWidth
+              label="Decryption Key"
+              onChange={(e) => setDcryptInp(e.target.value)}
+            />
+            <Button
+              variant="contained"
+              sx={{ px: 4 }}
+              color="secondary"
+              onClick={() => {
+                setDecrypted(
+                  CryptoJS.AES.decrypt(dcryptMsg, dcryptInp).toString(
+                    CryptoJS.enc.Utf8
+                  )
+                );
+              }}
+            >
+              Decrypt
+            </Button>
+
+          </Box>
+            {decrypted && <Typography mt={2} p={2} borderRadius={1} bgcolor={'#061018'}>{decrypted}</Typography>}
+        </Box>
+      </Dialog>
       {chats?.map((c, i) => (
         <Box
           key={i}
@@ -140,7 +191,14 @@ const ChatWindow = () => {
               gap={1}
               flexDirection={c.name == user.username ? "row-reverse" : "row"}
             >
-              <Avatar>{c?.name?.slice(0, 1).toUpperCase()}</Avatar>
+              <Avatar
+                sx={{
+                  bgcolor:
+                    c.name == user.username ? "primary.main" : "secondary.main",
+                }}
+              >
+                {c?.name?.slice(0, 1).toUpperCase()}
+              </Avatar>
               <Box
                 p={2}
                 py={0.8}
@@ -155,9 +213,32 @@ const ChatWindow = () => {
                 >
                   {c?.name}
                 </Typography>
-                <Typography fontSize={"1rem"}>
-                  <pre>{c?.message}</pre>
-                </Typography>
+                {c?.encrypted ? (
+                  <Box display={"flex"} gap={1} alignItems={"center"}>
+                    <Typography
+                      fontSize={"1rem"}
+                      textTransform={"uppercase"}
+                      fontFamily={"consolus"}
+                      color={"primary"}
+                    >
+                      Encrypted Message
+                    </Typography>
+                    <Button
+                      size="small"
+                      variant="contained"
+                      onClick={() => {
+                        setDcrypt(true);
+                        setDcryptMsg(c?.message);
+                      }}
+                    >
+                      Decrypt
+                    </Button>
+                  </Box>
+                ) : (
+                  <Typography component={"pre"} fontSize={"1rem"}>
+                    {c?.message}
+                  </Typography>
+                )}
                 <Typography
                   mt={1}
                   textAlign={"right"}
@@ -198,6 +279,30 @@ const TextWindow = () => {
 
   const chat = useRef();
 
+  const [securityDrawerOpen, setSecurityDrawerOpen] = useState(false);
+
+  // special
+
+  const [encOn, setEnc] = useState(true);
+  const [encTxt, setEncTxt] = useState("");
+
+  const [expOn, setExpOn] = useState(false);
+  const [expTime, setExpTime] = useState("");
+
+  const secureSend = () => {
+    if (encTxt.length > 3) {
+      const newMsg = {
+        sender: user.username,
+        encrypted: true,
+        room: activeRoom,
+        message: CryptoJS.AES.encrypt(msg.trim(), encTxt).toString(),
+      };
+      socket.emit(`chat-message`, newMsg);
+      // console.log(newMsg);
+      setMsg("");
+    }
+  };
+
   return (
     <Box
       p={2}
@@ -207,6 +312,65 @@ const TextWindow = () => {
       bgcolor={"black"}
       alignItems={"center"}
     >
+      <Drawer
+        anchor={"right"}
+        open={securityDrawerOpen}
+        onClose={() => {
+          setSecurityDrawerOpen(false);
+        }}
+      >
+        <Box
+          p={3}
+          width={"25rem"}
+          bgcolor={"#121E2C"}
+          height={"100%"}
+          display={"flex"}
+          flexDirection={"column"}
+        >
+          <Typography mb={2} fontSize={"1.1rem"} fontWeight={500}>
+            Message Security Options
+          </Typography>
+          <Box flex={1} overflow={"auto"}>
+            <Box display={"flex"} mt={4} justifyContent={"space-between"}>
+              <Typography>Encyption</Typography>
+              <Switch checked={encOn} onChange={(e, c) => setEnc(c)} />
+            </Box>
+            {encOn && (
+              <TextField
+                sx={{ mt: 1 }}
+                label="Encryption Text"
+                fullWidth
+                onChange={(e) => setEncTxt(e.target.value)}
+              />
+            )}
+
+            <Typography
+              fontSize={"0.8rem"}
+              fontWeight={500}
+              sx={{ mt: 4 }}
+              color={"#617284"}
+            >
+              Upcoming Features
+            </Typography>
+            <Box display={"flex"} mt={4} justifyContent={"space-between"}>
+              <Typography>Expiration Time</Typography>
+              <Switch
+                checked={expOn}
+                onChange={(e, c) => setExpOn(c)}
+                disabled
+              />
+            </Box>
+            {expOn && (
+              <TextField sx={{ mt: 1 }} label="Encryption Text" fullWidth />
+            )}
+            <Box display={"flex"} mt={2} justifyContent={"space-between"}>
+              <Typography>Expiry Trigger</Typography>
+              <Switch disabled />
+            </Box>
+          </Box>
+          <Button onClick={secureSend}>Send</Button>
+        </Box>
+      </Drawer>
       <TextField
         ref={chat}
         multiline
@@ -220,6 +384,15 @@ const TextWindow = () => {
       />
       <Button variant="contained" onClick={send}>
         Send
+      </Button>
+      <Button
+        variant="contained"
+        color="secondary"
+        onClick={() => {
+          setSecurityDrawerOpen(true);
+        }}
+      >
+        secure
       </Button>
     </Box>
   );

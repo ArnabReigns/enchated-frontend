@@ -163,7 +163,7 @@ const ChatWindow = () => {
             </Button>
           </Box>
           {decrypted && (
-            <Typography mt={2} p={2} borderRadius={1} bgcolor={"#061018"}>
+            <Typography mt={2} p={2} borderRadius={1} bgcolor={"#061018"} component={'pre'}>
               {decrypted}
             </Typography>
           )}
